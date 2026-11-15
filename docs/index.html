@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Radar — Live AI news from labs, media and research</title>
+  <meta name="description" content="AI Radar collects from 25 sources every 30 minutes — OpenAI, DeepMind, Anthropic, TechCrunch, The Verge, arXiv and more — into one live feed." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%2710%27 fill=%27%230a0e0d%27 stroke=%27%235fe3a1%27 stroke-width=%272%27/%3E%3Cpath d=%27M12 12 L20 7%27 stroke=%27%235fe3a1%27 stroke-width=%272.5%27/%3E%3C/svg%3E" />
+  <meta property="og:title" content="AI Radar" />
+  <meta property="og:description" content="Live AI news from labs, media and research, refreshed every 30 minutes." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <a class="skip" href="#feed" onclick="event.preventDefault();document.getElementById('feed').focus()">Skip to feed</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".5"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".7"/><path d="M12 12 L20.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>
+      <span>AI Radar</span>
+    </div>
+    <div class="status" data-testid="status-sweep">
+      <span class="pulse" id="pulse"></span>
+      <span id="statusText" class="mono">Connecting…</span>
+    </div>
+    <button class="btn" id="refreshBtn" data-testid="button-refresh" aria-label="Check for new stories">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Reload</span>
+    </button>
+  </header>
+
+  <main class="wrap">
+    <section class="scope" aria-label="Radar overview">
+      <div class="scope-visual">
+        <svg id="radar" viewBox="-128 -112 256 224" role="img" aria-label="Radar of the latest 40 stories; closer to centre is newer"></svg>
+        <div class="scope-legend mono" id="legend"></div>
+        <div class="blip-tip" id="tip" role="tooltip" hidden></div>
+      </div>
+
+      <div class="scope-side">
+        <div class="kpis">
+          <div class="kpi"><span class="kpi-n mono" id="kLast24" data-testid="text-stories-24h">—</span><span class="kpi-l">stories, last 24h</span></div>
+          <div class="kpi"><span class="kpi-n mono" id="kTotal" data-testid="text-stories-total">—</span><span class="kpi-l">tracked, 10 days</span></div>
+          <div class="kpi"><span class="kpi-n mono" id="kSources" data-testid="text-sources-online">—</span><span class="kpi-l">sources online</span></div>
+        </div>
+        <div class="signals">
+          <h2 class="label">Signals · last 48h</h2>
+          <div id="signals" class="signal-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="controls" aria-label="Filters">
+      <div class="search">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="q" type="search" placeholder="Search headlines, e.g. Gemini, agents, funding" aria-label="Search headlines" data-testid="input-search" />
+      </div>
+      <div class="chips" id="cats" role="tablist" aria-label="Category"></div>
+      <div class="selects">
+        <label class="sel"><span class="sr">Source group</span>
+          <select id="group" data-testid="select-group">
+            <option value="">All groups</option>
+            <option>Labs</option><option>Media</option><option>Research</option><option>Newsletters</option><option>Community</option>
+          </select>
+        </label>
+        <label class="sel"><span class="sr">Time window</span>
+          <select id="win" data-testid="select-window">
+            <option value="24">Last 24 hours</option>
+            <option value="72" selected>Last 3 days</option>
+            <option value="240">Last 10 days</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <div class="layout">
+      <section class="feed" id="feed" tabindex="-1" aria-label="News feed">
+        <div class="feed-head">
+          <span class="mono muted" id="resultCount" data-testid="text-result-count"></span>
+          <button class="linkbtn" id="clearBtn" data-testid="button-clear" hidden>Clear filters</button>
+        </div>
+        <ol id="list" class="list" aria-live="polite"></ol>
+        <button class="btn more" id="moreBtn" data-testid="button-more" hidden>Show more</button>
+      </section>
+
+      <aside class="sources" aria-label="Sources">
+        <h2 class="label">Sources</h2>
+        <ul id="sourceList" class="source-list"></ul>
+        <p class="note">Collected automatically from public RSS feeds every 30 minutes by a scheduled GitHub Action. Headlines link to the original publisher.</p>
+      </aside>
+    </div>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
